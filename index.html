@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fruit Shorts Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #090D0B;
+    --surface: #111916;
+    --border:  #1E2D22;
+    --text:    #E4F0E8;
+    --muted:   #4E7A5C;
+    --accent:  #5DED8E;
+    --orange:  #FF9557;
+    --error:   #FF6B6B;
+    --radius:  12px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 28px 20px 60px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  /* ── Typography ─────────────────────────────────────────────── */
+  h1 { font-family: 'Fraunces', Georgia, serif; font-size: 1.8rem; font-weight: 600; letter-spacing: -0.02em; }
+  h2 { font-family: 'Fraunces', Georgia, serif; font-size: 1.1rem; font-weight: 400; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+  h3 { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* ── Layout Helpers ─────────────────────────────────────────── */
+  .hidden { display: none !important; }
+  .flex { display: flex; align-items: center; gap: 12px; }
+  .spacer { flex: 1; }
+
+  /* ── Header ─────────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+  .header-sub {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-top: 2px;
+  }
+
+  /* ── Buttons ─────────────────────────────────────────────────── */
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #050A06;
+    padding: 14px 28px;
+    font-size: 1rem;
+    width: 100%;
+    border-radius: var(--radius);
+  }
+  .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+
+  .btn-icon {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 12px;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .btn-icon:hover { color: var(--text); border-color: var(--muted); }
+
+  .btn-download {
+    background: transparent;
+    border: 1px solid var(--orange);
+    color: var(--orange);
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    margin-top: 8px;
+    width: 100%;
+  }
+  .btn-download:hover { background: var(--orange); color: #fff; }
+
+  /* ── Progress Bar ────────────────────────────────────────────── */
+  .pool-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+  }
+  .pool-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .pool-stats span { color: var(--text); font-weight: 600; }
+  .progress-track {
+    background: var(--border);
+    border-radius: 99px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    background: var(--accent);
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── Generate Section ────────────────────────────────────────── */
+  .generate-section { margin-bottom: 36px; }
+  .generate-note {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-top: 10px;
+  }
+
+  /* ── Episode Section ─────────────────────────────────────────── */
+  .episode-section {
+    margin-bottom: 40px;
+  }
+  .clips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  /* ── Clip Card ───────────────────────────────────────────────── */
+  .clip-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.2s;
+  }
+  .clip-card.done { border-color: #1E4A2A; }
+  .clip-card.error { border-color: #4A1E1E; }
+
+  .clip-fruit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .clip-emoji { font-size: 1.4rem; line-height: 1; }
+  .clip-name { font-weight: 600; font-size: 0.9rem; }
+
+  .clip-status {
+    font-size: 0.78rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .clip-status.queued    { color: var(--muted); }
+  .clip-status.progress  { color: var(--accent); }
+  .clip-status.done      { color: var(--accent); }
+  .clip-status.error     { color: var(--error); }
+
+  .spinner {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border: 2px solid var(--accent);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .clip-video {
+    width: 100%;
+    border-radius: 8px;
+    aspect-ratio: 9/16;
+    object-fit: cover;
+    background: var(--bg);
+    display: block;
+    max-height: 260px;
+  }
+
+  /* ── Status Banner ───────────────────────────────────────────── */
+  .status-banner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-banner.error { border-color: var(--error); color: var(--error); }
+  .status-banner.success { border-color: var(--accent); color: var(--accent); }
+
+  /* ── History ─────────────────────────────────────────────────── */
+  .history-section { margin-top: 40px; }
+  .history-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+  }
+  .history-ep { font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+  .history-fruits { color: var(--muted); }
+
+  /* ── Modal ───────────────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .modal-box h2 {
+    font-family: 'Fraunces', serif;
+    color: var(--text);
+    font-size: 1.2rem;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-bottom: 20px;
+  }
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Inter', monospace;
+    font-size: 0.85rem;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+  .btn-save {
+    flex: 1;
+    background: var(--accent);
+    color: #050A06;
+    padding: 11px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+  .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 11px 20px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+  .modal-note {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+  .reset-link {
+    color: var(--error);
+    font-size: 0.78rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    text-decoration: underline;
+    display: block;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Settings Modal -->
+<div id="modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h2>Settings</h2>
+    <div class="field">
+      <label>Cloudflare Worker URL</label>
+      <input id="worker-input" type="text" placeholder="https://your-worker.workers.dev" spellcheck="false">
+    </div>
+    <p class="modal-note">
+      Paste the URL of your <strong>fruit-shorts-proxy</strong> Cloudflare Worker.
+      Your fal.ai and Anthropic API keys live there — they never appear in this file.
+    </p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveSettings()">Save</button>
+    </div>
+    <button class="reset-link" onclick="resetAll()">Reset all episode history and fruit tracking</button>
+  </div>
+</div>
+
+<!-- App -->
+<header>
+  <div>
+    <h1>🍉 Fruit Shorts</h1>
+    <p class="header-sub" id="episode-sub">YouTube Shorts Generator</p>
+  </div>
+  <button class="btn-icon" onclick="openModal()" title="Settings">⚙</button>
+</header>
+
+<div id="status-msg" class="status-banner hidden"></div>
+
+<div class="pool-bar">
+  <div class="pool-stats">
+    <span><span id="used-count">0</span> of <span id="total-count">24</span> fruits used</span>
+    <span id="cycle-label"></span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+</div>
+
+<div class="generate-section">
+  <button class="btn-primary" id="generate-btn" onclick="generateEpisode()">Generate Episode 1</button>
+  <p class="generate-note" id="generate-note"></p>
+</div>
+
+<div id="episode-section" class="episode-section hidden">
+  <h2 id="episode-heading">Episode 1</h2>
+  <div class="clips-grid" id="clips-grid"></div>
+</div>
+
+<div id="history-section" class="history-section hidden">
+  <h2>Past Episodes</h2>
+  <div id="history-list"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════
+
+const FRUITS = [
+  { name: 'Watermelon',   emoji: '🍉' },
+  { name: 'Dragon Fruit', emoji: '🐲' },
+  { name: 'Kiwi',         emoji: '🥝' },
+  { name: 'Mango',        emoji: '🥭' },
+  { name: 'Passion Fruit',emoji: '🌸' },
+  { name: 'Strawberry',   emoji: '🍓' },
+  { name: 'Blood Orange', emoji: '🍊' },
+  { name: 'Pomegranate',  emoji: '🔴' },
+  { name: 'Papaya',       emoji: '🧡' },
+  { name: 'Pineapple',    emoji: '🍍' },
+  { name: 'Star Fruit',   emoji: '⭐' },
+  { name: 'Fig',          emoji: '🟣' },
+  { name: 'Peach',        emoji: '🍑' },
+  { name: 'Lemon',        emoji: '🍋' },
+  { name: 'Lychee',       emoji: '💎' },
+  { name: 'Cantaloupe',   emoji: '🍈' },
+  { name: 'Honeydew',     emoji: '🟢' },
+  { name: 'Guava',        emoji: '🌿' },
+  { name: 'Persimmon',    emoji: '🟠' },
+  { name: 'Plum',         emoji: '🫐' },
+  { name: 'Nectarine',    emoji: '🍑' },
+  { name: 'Jackfruit',    emoji: '🌟' },
+  { name: 'Mangosteen',   emoji: '🟤' },
+  { name: 'Lime',         emoji: '💚' },
+];
+
+const STORAGE = {
+  workerUrl:    'fs_workerUrl',
+  usedFruits:   'fs_usedFruits',
+  episodeCount: 'fs_episodeCount',
+  history:      'fs_history',
+};
+
+const FRUITS_PER_EPISODE = 6;
+const POLL_INTERVAL_MS   = 6000;
+const MAX_POLL_ATTEMPTS  = 50; // ~5 minutes
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+
+let state = {
+  workerUrl:      '',
+  usedFruits:     [],   // array of fruit names already used
+  episodeCount:   0,
+  history:        [],   // [{number, fruits, clips}]
+  currentEpisode: null,
+  isGenerating:   false,
+};
+
+function loadState() {
+  state.workerUrl    = localStorage.getItem(STORAGE.workerUrl)    || '';
+  state.usedFruits   = JSON.parse(localStorage.getItem(STORAGE.usedFruits)   || '[]');
+  state.episodeCount = parseInt(localStorage.getItem(STORAGE.episodeCount)    || '0');
+  state.history      = JSON.parse(localStorage.getItem(STORAGE.history)       || '[]');
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE.workerUrl,    state.workerUrl);
+  localStorage.setItem(STORAGE.usedFruits,   JSON.stringify(state.usedFruits));
+  localStorage.setItem(STORAGE.episodeCount, String(state.episodeCount));
+  localStorage.setItem(STORAGE.history,      JSON.stringify(state.history));
+}
+
+// ═══════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════
+
+async function callClaude(userPrompt) {
+  const res = await fetch(`${state.workerUrl}/claude`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
+      system: `You are an expert ASMR video director creating YouTube Shorts about fruit cutting.
+
+Write precise prompts for Kling 2.6 Pro, a photorealistic AI video generator that generates synchronized native audio.
+
+PROMPT STRUCTURE:
+"[Shot type and angle], [specific fruit description], [cutting action in slow motion], [interior texture details], [surface and background], [lighting], [audio — describe the exact ASMR sounds], vertical 9:16 format, 120fps slow motion, cinematic photorealistic 4K, ASMR"
+
+EXAMPLE:
+"Extreme macro close-up overhead shot, a bright red watermelon with dark green rind on polished white marble, a heavy Japanese cleaver splits it cleanly in half with one decisive stroke in ultra-slow motion at 120fps, revealing the vibrant crimson interior with white seeds, glistening juice spraying outward in suspended droplets, soft diffused window light casting gentle shadows, deep satisfying thud of the cleaver followed by the wet crack of the rind and rushing juice sound, vertical 9:16 format, 120fps slow motion, cinematic photorealistic 4K, ASMR"
+
+RULES:
+- Each prompt must be unique in shot angle, cutting technique, surface, and lighting
+- Vary surfaces: white marble, dark slate, light oak wood, pale stone
+- Vary shots: overhead, 45-degree angle, side-on, close-up of the cut face
+- Vary cuts: halving, wedging, thin slicing, cross-section reveal
+- Be specific about audio: describe the texture of the sound (crisp, wet, hollow, soft pop, etc.)
+- NEVER describe anything that cannot be photorealistically generated (no text overlays, no logos)
+
+Respond with ONLY valid JSON — no markdown, no backticks, no explanation:`,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+
+  if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Claude API error');
+
+  const raw = data.content[0].text.trim();
+  // Strip markdown fences if present
+  const clean = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  return JSON.parse(clean);
+}
+
+async function submitFalJob(prompt) {
+  const res = await fetch(`${state.workerUrl}/fal/submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      duration: '5',
+      aspect_ratio: '9:16',
+      with_audio: true,
+    }),
+  });
+  if (!res.ok) throw new Error(`fal.ai submit error: ${res.status}`);
+  const data = await res.json();
+  console.log('[fal submit]', data);
+  if (data.error) throw new Error(data.error);
+  return data; // contains request_id
+}
+
+async function checkFalStatus(requestId) {
+  const res = await fetch(
+    `${state.workerUrl}/fal/status/${encodeURIComponent(requestId)}`,
+    { method: 'GET' }
+  );
+  if (!res.ok) throw new Error(`fal.ai status error: ${res.status}`);
+  const data = await res.json();
+  console.log('[fal status]', requestId, data.status);
+  return data;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ═══════════════════════════════════════════════════
+// FRUIT SELECTION
+// ═══════════════════════════════════════════════════
+
+function getAvailableFruits() {
+  return FRUITS.filter(f => !state.usedFruits.includes(f.name));
+}
+
+function getFruitMeta(name) {
+  return FRUITS.find(f => f.name === name) || { name, emoji: '🍎' };
+}
+
+// ═══════════════════════════════════════════════════
+// GENERATION FLOW
+// ═══════════════════════════════════════════════════
+
+async function generateEpisode() {
+  if (state.isGenerating) return;
+  if (!state.workerUrl) {
+    openModal();
+    return;
+  }
+
+  const available = getAvailableFruits();
+  if (available.length < FRUITS_PER_EPISODE) {
+    // All fruits used — reset and start a new cycle
+    state.usedFruits = [];
+    saveState();
+    showMessage('All fruits used! Starting a new cycle.', 'success');
+    renderUI();
+    return;
+  }
+
+  state.isGenerating = true;
+  setGenerateBtn(true);
+  clearMessage();
+
+  const episodeNumber = state.episodeCount + 1;
+
+  // Build Claude prompt
+  const usedList = state.usedFruits.length
+    ? state.usedFruits.join(', ')
+    : 'none yet';
+  const availList = available.map(f => f.name).join(', ');
+
+  let selection;
+  try {
+    showMessage('Asking Claude to select fruits and write prompts…', '');
+    selection = await callClaude(
+      `Previously used fruits (do NOT select these): ${usedList}
+
+Available fruits to choose from: ${availList}
+
+Select exactly ${FRUITS_PER_EPISODE} fruits. Write one unique video prompt per fruit.
+
+Return ONLY this JSON structure:
+{
+  "fruits": ["Fruit1", "Fruit2", ...],
+  "clips": [
+    { "fruit": "Fruit1", "prompt": "..." },
+    ...
+  ]
+}`
+    );
+  } catch (err) {
+    state.isGenerating = false;
+    setGenerateBtn(false);
+    showMessage('Claude error: ' + err.message, 'error');
+    return;
+  }
+
+  // Set up episode state
+  state.currentEpisode = {
+    number: episodeNumber,
+    fruits: selection.fruits,
+    clips: selection.clips.map(c => ({
+      fruit:     c.fruit,
+      emoji:     getFruitMeta(c.fruit).emoji,
+      prompt:    c.prompt,
+      status:    'pending',   // pending | queued | progress | done | error
+      requestId: null,
+      videoUrl:  null,
+      error:     null,
+    })),
+  };
+
+  showMessage('Submitting clips to fal.ai…', '');
+  renderEpisodeSection();
+
+  // Submit all clips to fal.ai in parallel
+  const submitPromises = state.currentEpisode.clips.map(async (clip, i) => {
+    try {
+      const result = await submitFalJob(clip.prompt);
+      state.currentEpisode.clips[i].requestId = result.request_id;
+      state.currentEpisode.clips[i].status    = 'queued';
+      renderClipCard(i);
+    } catch (err) {
+      state.currentEpisode.clips[i].status = 'error';
+      state.currentEpisode.clips[i].error  = err.message;
+      renderClipCard(i);
+    }
+  });
+
+  await Promise.all(submitPromises);
+
+  clearMessage();
+
+  // Poll all submitted clips for completion
+  const pollPromises = state.currentEpisode.clips.map(async (clip, i) => {
+    if (!clip.requestId) return; // submit failed
+    await pollClip(i);
+  });
+
+  await Promise.all(pollPromises);
+
+  // Finalise episode
+  state.episodeCount++;
+  state.usedFruits = [...state.usedFruits, ...selection.fruits];
+  state.history.unshift({
+    number: episodeNumber,
+    fruits: selection.fruits,
+    clips:  state.currentEpisode.clips.map(c => ({
+      fruit:    c.fruit,
+      emoji:    c.emoji,
+      videoUrl: c.videoUrl,
+    })),
+  });
+  saveState();
+
+  state.isGenerating = false;
+  setGenerateBtn(false);
+
+  const remaining = getAvailableFruits().length;
+  if (remaining === 0) {
+    showMessage('All 24 fruits used! Click Generate to start a new cycle.', 'success');
+  } else {
+    showMessage(`Episode ${episodeNumber} complete. ${remaining} fruits remaining.`, 'success');
+  }
+
+  renderUI();
+}
+
+async function pollClip(i) {
+  const clip = state.currentEpisode.clips[i];
+  state.currentEpisode.clips[i].status = 'progress';
+  renderClipCard(i);
+
+  for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+    await sleep(POLL_INTERVAL_MS);
+    try {
+      const result = await checkFalStatus(clip.requestId);
+
+      if (result.status === 'COMPLETED') {
+        // Handle both response shapes
+        const videoUrl =
+          result?.output?.video?.url ||
+          result?.video?.url ||
+          null;
+        state.currentEpisode.clips[i].status   = 'done';
+        state.currentEpisode.clips[i].videoUrl = videoUrl;
+        renderClipCard(i);
+        return;
+      }
+
+      if (result.status === 'FAILED') {
+        state.currentEpisode.clips[i].status = 'error';
+        state.currentEpisode.clips[i].error  = 'fal.ai generation failed';
+        renderClipCard(i);
+        return;
+      }
+
+      // IN_QUEUE or IN_PROGRESS — keep polling
+      state.currentEpisode.clips[i].status = result.status === 'IN_QUEUE' ? 'queued' : 'progress';
+      renderClipCard(i);
+
+    } catch (err) {
+      // Network blip — keep trying
+      console.warn('[poll error]', err.message);
+    }
+  }
+
+  // Timed out
+  state.currentEpisode.clips[i].status = 'error';
+  state.currentEpisode.clips[i].error  = 'Timed out after 5 minutes';
+  renderClipCard(i);
+}
+
+// ═══════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════
+
+function renderUI() {
+  const epNum   = state.episodeCount + 1;
+  const used    = state.usedFruits.length;
+  const total   = FRUITS.length;
+  const pct     = Math.round((used / total) * 100);
+  const cycle   = Math.floor(used / total) + 1;
+
+  document.getElementById('episode-sub').textContent =
+    state.episodeCount === 0
+      ? 'YouTube Shorts Generator'
+      : `${state.episodeCount} episode${state.episodeCount !== 1 ? 's' : ''} generated`;
+
+  document.getElementById('used-count').textContent  = used;
+  document.getElementById('total-count').textContent = total;
+  document.getElementById('progress-fill').style.width = `${pct}%`;
+
+  const cycleEl = document.getElementById('cycle-label');
+  cycleEl.textContent = cycle > 1 ? `Cycle ${cycle}` : '';
+
+  const btn = document.getElementById('generate-btn');
+  btn.textContent = `Generate Episode ${epNum}`;
+
+  const note = document.getElementById('generate-note');
+  note.textContent = getAvailableFruits().length < FRUITS_PER_EPISODE && used > 0
+    ? 'All fruits used — next click starts a new cycle.'
+    : '';
+
+  renderHistory();
+}
+
+function renderEpisodeSection() {
+  const ep = state.currentEpisode;
+  if (!ep) return;
+
+  const section = document.getElementById('episode-section');
+  section.classList.remove('hidden');
+
+  document.getElementById('episode-heading').textContent =
+    `Episode ${ep.number} · ${ep.fruits.join(', ')}`;
+
+  const grid = document.getElementById('clips-grid');
+  grid.innerHTML = ep.clips.map((_, i) => clipCardHTML(i)).join('');
+}
+
+function renderClipCard(i) {
+  const el = document.getElementById(`clip-${i}`);
+  if (!el) return;
+  el.outerHTML = clipCardHTML(i);
+}
+
+function clipCardHTML(i) {
+  const clip   = state.currentEpisode.clips[i];
+  const status = clip.status;
+
+  const statusMap = {
+    pending:  { label: 'Waiting…',    cls: '',         icon: '○' },
+    queued:   { label: 'In queue',    cls: 'queued',   icon: '·' },
+    progress: { label: 'Generating',  cls: 'progress', icon: '<span class="spinner"></span>' },
+    done:     { label: 'Ready',       cls: 'done',     icon: '✓' },
+    error:    { label: clip.error || 'Error', cls: 'error', icon: '✗' },
+  };
+  const s = statusMap[status] || statusMap.pending;
+
+  const videoEl = (clip.videoUrl && status === 'done')
+    ? `<video class="clip-video" src="${clip.videoUrl}" controls playsinline muted loop></video>
+       <a href="${clip.videoUrl}" download="${clip.fruit.replace(/\s+/g,'_')}_short.mp4" target="_blank">
+         <button class="btn-download">⬇ Download</button>
+       </a>
+       <p style="font-size:0.72rem;color:var(--muted);margin-top:4px;">
+         Save immediately — fal.ai links expire in 24 h
+       </p>`
+    : '';
+
+  return `<div class="clip-card ${status === 'done' ? 'done' : status === 'error' ? 'error' : ''}" id="clip-${i}">
+    <div class="clip-fruit">
+      <span class="clip-emoji">${clip.emoji}</span>
+      <span class="clip-name">${clip.fruit}</span>
+    </div>
+    <div class="clip-status ${s.cls}">${s.icon} ${s.label}</div>
+    ${videoEl}
+  </div>`;
+}
+
+function renderHistory() {
+  const section = document.getElementById('history-section');
+  const list    = document.getElementById('history-list');
+
+  if (state.history.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+  section.classList.remove('hidden');
+  list.innerHTML = state.history.map(ep => `
+    <div class="history-item">
+      <div class="history-ep">Episode ${ep.number}</div>
+      <div class="history-fruits">${ep.fruits.map(f => {
+        const meta = getFruitMeta(f);
+        return `${meta.emoji} ${f}`;
+      }).join(' · ')}</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// STATUS MESSAGE
+// ═══════════════════════════════════════════════════
+
+function showMessage(text, type) {
+  const el = document.getElementById('status-msg');
+  el.textContent = text;
+  el.className   = 'status-banner' + (type ? ` ${type}` : '');
+  el.classList.remove('hidden');
+}
+
+function clearMessage() {
+  document.getElementById('status-msg').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════
+// SETTINGS MODAL
+// ═══════════════════════════════════════════════════
+
+function openModal() {
+  document.getElementById('worker-input').value = state.workerUrl;
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+}
+
+function saveSettings() {
+  const val = document.getElementById('worker-input').value.trim().replace(/\/$/, '');
+  if (!val) { alert('Please enter your Worker URL.'); return; }
+  state.workerUrl = val;
+  saveState();
+  closeModal();
+  clearMessage();
+  renderUI();
+}
+
+function resetAll() {
+  if (!confirm('This will erase all episode history and fruit tracking. Are you sure?')) return;
+  state.usedFruits   = [];
+  state.episodeCount  = 0;
+  state.history       = [];
+  state.currentEpisode = null;
+  saveState();
+  closeModal();
+  document.getElementById('episode-section').classList.add('hidden');
+  renderUI();
+}
+
+// ═══════════════════════════════════════════════════
+// BUTTON STATE
+// ═══════════════════════════════════════════════════
+
+function setGenerateBtn(disabled) {
+  const btn = document.getElementById('generate-btn');
+  btn.disabled    = disabled;
+  btn.textContent = disabled
+    ? 'Generating…'
+    : `Generate Episode ${state.episodeCount + 1}`;
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+
+loadState();
+renderUI();
+
+// Show settings on first visit
+if (!state.workerUrl) {
+  setTimeout(() => {
+    showMessage('Welcome! Open Settings (⚙) and enter your Cloudflare Worker URL to get started.', '');
+    openModal();
+  }, 300);
+}
+</script>
+</body>
+</html>
