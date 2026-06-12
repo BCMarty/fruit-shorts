@@ -310,6 +310,103 @@
     display: block;
     margin-top: 20px;
   }
+
+  /* ── Review Panel ────────────────────────────────────────────── */
+  .review-section { margin-bottom: 36px; }
+  .review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .sandbox-link {
+    color: var(--accent);
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .sandbox-link:hover { text-decoration: underline; }
+  .review-note {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .prompt-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .prompt-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .prompt-fruit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .btn-copy {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    border-radius: 6px;
+  }
+  .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-copy.copied { border-color: var(--accent); color: var(--accent); }
+  .prompt-textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 110px;
+  }
+  .prompt-textarea:focus { outline: none; border-color: var(--accent); }
+  .review-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .btn-submit {
+    flex: 1;
+    background: var(--accent);
+    color: #050A06;
+    padding: 14px 28px;
+    font-size: 1rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-family: 'Inter', system-ui, sans-serif;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s;
+  }
+  .btn-submit:hover { opacity: 0.88; }
+  .btn-discard {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 14px 20px;
+    font-size: 0.9rem;
+    border-radius: var(--radius);
+    font-family: 'Inter', system-ui, sans-serif;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-discard:hover { border-color: var(--error); color: var(--error); }
 </style>
 </head>
 <body>
@@ -358,6 +455,23 @@
 <div class="generate-section">
   <button class="btn-primary" id="generate-btn" onclick="generateEpisode()">Generate Episode 1</button>
   <p class="generate-note" id="generate-note"></p>
+</div>
+
+<!-- Review Panel: shown after Claude generates prompts, before fal.ai submission -->
+<div id="review-section" class="review-section hidden">
+  <div class="review-header">
+    <h2 style="margin-bottom:0">Review Prompts</h2>
+    <a href="https://fal.ai/sandbox" target="_blank" class="sandbox-link">Open Sandbox ↗</a>
+  </div>
+  <p class="review-note">
+    Copy any prompt and test it in the fal.ai Sandbox using Kling 2.6 Pro before committing.
+    Edit the text directly if you want to adjust anything, then click <strong>Submit to fal.ai</strong>.
+  </p>
+  <div id="prompt-list"></div>
+  <div class="review-actions">
+    <button class="btn-discard" onclick="discardEpisode()">Start Over</button>
+    <button class="btn-submit" onclick="submitEpisode()">Submit to fal.ai</button>
+  </div>
 </div>
 
 <div id="episode-section" class="episode-section hidden">
@@ -424,6 +538,7 @@ let state = {
   history:        [],   // [{number, fruits, clips}]
   currentEpisode: null,
   isGenerating:   false,
+  isReviewing:    false, // true when prompts are ready but not yet submitted
 };
 
 function loadState() {
@@ -547,7 +662,7 @@ function getFruitMeta(name) {
 // ═══════════════════════════════════════════════════
 
 async function generateEpisode() {
-  if (state.isGenerating) return;
+  if (state.isGenerating || state.isReviewing) return;
   if (!state.workerUrl) {
     openModal();
     return;
@@ -555,7 +670,6 @@ async function generateEpisode() {
 
   const available = getAvailableFruits();
   if (available.length < FRUITS_PER_EPISODE) {
-    // All fruits used — reset and start a new cycle
     state.usedFruits = [];
     saveState();
     showMessage('All fruits used! Starting a new cycle.', 'success');
@@ -568,11 +682,7 @@ async function generateEpisode() {
   clearMessage();
 
   const episodeNumber = state.episodeCount + 1;
-
-  // Build Claude prompt
-  const usedList = state.usedFruits.length
-    ? state.usedFruits.join(', ')
-    : 'none yet';
+  const usedList  = state.usedFruits.length ? state.usedFruits.join(', ') : 'none yet';
   const availList = available.map(f => f.name).join(', ');
 
   let selection;
@@ -601,7 +711,7 @@ Return ONLY this JSON structure:
     return;
   }
 
-  // Set up episode state
+  // Store episode with prompts — do NOT submit to fal.ai yet
   state.currentEpisode = {
     number: episodeNumber,
     fruits: selection.fruits,
@@ -609,15 +719,44 @@ Return ONLY this JSON structure:
       fruit:     c.fruit,
       emoji:     getFruitMeta(c.fruit).emoji,
       prompt:    c.prompt,
-      status:    'pending',   // pending | queued | progress | done | error
+      status:    'pending',
       requestId: null,
       videoUrl:  null,
       error:     null,
     })),
   };
 
+  state.isGenerating = false;
+  state.isReviewing  = true;
+  clearMessage();
+  setGenerateBtn(false);
+
+  // Show review panel
+  document.getElementById('review-section').classList.remove('hidden');
+  document.getElementById('episode-section').classList.add('hidden');
+  renderReviewPanel();
+  renderUI();
+}
+
+// Called when user clicks Submit to fal.ai after reviewing prompts
+async function submitEpisode() {
+  if (!state.currentEpisode || state.isGenerating) return;
+
+  // Read any edits the user made in the textareas back into state
+  state.currentEpisode.clips.forEach((clip, i) => {
+    const ta = document.getElementById(`prompt-ta-${i}`);
+    if (ta) state.currentEpisode.clips[i].prompt = ta.value.trim();
+  });
+
+  state.isReviewing  = false;
+  state.isGenerating = true;
+
+  document.getElementById('review-section').classList.add('hidden');
+
   showMessage('Submitting clips to fal.ai…', '');
   renderEpisodeSection();
+
+  const episodeNumber = state.currentEpisode.number;
 
   // Submit all clips to fal.ai in parallel
   const submitPromises = state.currentEpisode.clips.map(async (clip, i) => {
@@ -634,12 +773,11 @@ Return ONLY this JSON structure:
   });
 
   await Promise.all(submitPromises);
-
   clearMessage();
 
   // Poll all submitted clips for completion
   const pollPromises = state.currentEpisode.clips.map(async (clip, i) => {
-    if (!clip.requestId) return; // submit failed
+    if (!clip.requestId) return;
     await pollClip(i);
   });
 
@@ -647,10 +785,10 @@ Return ONLY this JSON structure:
 
   // Finalise episode
   state.episodeCount++;
-  state.usedFruits = [...state.usedFruits, ...selection.fruits];
+  state.usedFruits = [...state.usedFruits, ...state.currentEpisode.fruits];
   state.history.unshift({
     number: episodeNumber,
-    fruits: selection.fruits,
+    fruits: state.currentEpisode.fruits,
     clips:  state.currentEpisode.clips.map(c => ({
       fruit:    c.fruit,
       emoji:    c.emoji,
@@ -670,6 +808,57 @@ Return ONLY this JSON structure:
   }
 
   renderUI();
+}
+
+// Discard the current pending episode and start fresh
+function discardEpisode() {
+  state.currentEpisode = null;
+  state.isReviewing    = false;
+  state.isGenerating   = false;
+  document.getElementById('review-section').classList.add('hidden');
+  document.getElementById('episode-section').classList.add('hidden');
+  clearMessage();
+  setGenerateBtn(false);
+  renderUI();
+}
+
+// Render the editable prompt review panel
+function renderReviewPanel() {
+  const ep   = state.currentEpisode;
+  const list = document.getElementById('prompt-list');
+  if (!ep) return;
+
+  list.innerHTML = ep.clips.map((clip, i) => `
+    <div class="prompt-card">
+      <div class="prompt-card-header">
+        <div class="prompt-fruit">
+          <span>${clip.emoji}</span>
+          <span>${clip.fruit}</span>
+        </div>
+        <button class="btn-copy" id="copy-btn-${i}" onclick="copyPrompt(${i})">Copy</button>
+      </div>
+      <textarea class="prompt-textarea" id="prompt-ta-${i}">${clip.prompt}</textarea>
+    </div>
+  `).join('');
+}
+
+// Copy a single prompt to clipboard
+async function copyPrompt(i) {
+  const ta  = document.getElementById(`prompt-ta-${i}`);
+  const btn = document.getElementById(`copy-btn-${i}`);
+  if (!ta || !btn) return;
+  try {
+    await navigator.clipboard.writeText(ta.value);
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  } catch {
+    ta.select();
+    document.execCommand('copy');
+  }
 }
 
 async function pollClip(i) {
@@ -880,10 +1069,12 @@ function resetAll() {
 
 function setGenerateBtn(disabled) {
   const btn = document.getElementById('generate-btn');
-  btn.disabled    = disabled;
-  btn.textContent = disabled
+  btn.disabled = disabled || state.isReviewing;
+  btn.textContent = state.isGenerating
     ? 'Generating…'
-    : `Generate Episode ${state.episodeCount + 1}`;
+    : state.isReviewing
+      ? 'Review prompts below'
+      : `Generate Episode ${state.episodeCount + 1}`;
 }
 
 // ═══════════════════════════════════════════════════
