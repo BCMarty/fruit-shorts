@@ -407,6 +407,144 @@
     transition: border-color 0.15s, color 0.15s;
   }
   .btn-discard:hover { border-color: var(--error); color: var(--error); }
+
+  /* ── Remove button on prompt cards ──────────────────────────── */
+  .btn-remove {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    border-radius: 6px;
+    margin-left: 6px;
+  }
+  .btn-remove:hover { border-color: var(--error); color: var(--error); }
+  .prompt-card.removed { opacity: 0.4; pointer-events: none; }
+
+  /* ── Fruit Manager Modal ─────────────────────────────────────── */
+  .fm-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+    padding: 20px;
+  }
+  .fm-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .fm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .fm-header h2 {
+    font-family: 'Fraunces', serif;
+    color: var(--text);
+    font-size: 1.2rem;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-bottom: 0;
+  }
+  .fm-note {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+  .fm-legend {
+    display: flex;
+    gap: 16px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .fm-legend span { display: flex; align-items: center; gap: 5px; }
+  .fm-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .fm-fruit-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    transition: border-color 0.15s;
+  }
+  .fm-fruit-row.is-used { opacity: 0.5; }
+  .fm-fruit-row.is-forced { border-color: var(--accent); }
+  .fm-fruit-emoji { font-size: 1.1rem; flex-shrink: 0; }
+  .fm-fruit-name { font-size: 0.82rem; font-weight: 500; flex: 1; }
+  .fm-btn-used {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    border-radius: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .fm-btn-used.used { border-color: var(--muted); background: var(--border); }
+  .fm-btn-used:hover { border-color: var(--orange); color: var(--orange); }
+  .fm-btn-force {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    border-radius: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .fm-btn-force.forced { border-color: var(--accent); color: var(--accent); background: rgba(93,237,142,0.1); }
+  .fm-btn-force:hover:not(.forced) { border-color: var(--accent); color: var(--accent); }
+  .fm-actions {
+    display: flex;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .fm-btn-reset {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    font-family: 'Inter', system-ui, sans-serif;
+    cursor: pointer;
+  }
+  .fm-btn-reset:hover { border-color: var(--orange); color: var(--orange); }
+  .fm-btn-close {
+    flex: 1;
+    background: var(--accent);
+    color: #050A06;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    font-family: 'Inter', system-ui, sans-serif;
+    cursor: pointer;
+    border: none;
+    font-weight: 600;
+  }
+  .fm-forced-note {
+    font-size: 0.78rem;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
 </style>
 </head>
 <body>
@@ -431,6 +569,25 @@
   </div>
 </div>
 
+<!-- Fruit Manager Modal -->
+<div id="fm-modal" class="fm-overlay hidden">
+  <div class="fm-box">
+    <div class="fm-header">
+      <h2>🍎 Fruit Manager</h2>
+    </div>
+    <p class="fm-note">
+      Toggle any fruit between <strong>Used</strong> and <strong>Available</strong> to control the pool.
+      Use <strong>Force</strong> to guarantee a fruit appears in the next episode.
+    </p>
+    <div id="fm-forced-note" class="fm-forced-note hidden"></div>
+    <div class="fm-grid" id="fm-grid"></div>
+    <div class="fm-actions">
+      <button class="fm-btn-reset" onclick="resetAllFruits()">Reset All to Available</button>
+      <button class="fm-btn-close" onclick="closeFruitManager()">Done</button>
+    </div>
+  </div>
+</div>
+
 <!-- App -->
 <header>
   <div>
@@ -445,7 +602,7 @@
 <div class="pool-bar">
   <div class="pool-stats">
     <span><span id="used-count">0</span> of <span id="total-count">24</span> fruits used</span>
-    <span id="cycle-label"></span>
+    <button class="btn-icon" style="padding:4px 10px;font-size:0.78rem;" onclick="openFruitManager()" title="Manage Fruits">🍎 Manage</button>
   </div>
   <div class="progress-track">
     <div class="progress-fill" id="progress-fill" style="width:0%"></div>
@@ -521,6 +678,7 @@ const STORAGE = {
   usedFruits:   'fs_usedFruits',
   episodeCount: 'fs_episodeCount',
   history:      'fs_history',
+  forcedFruits: 'fs_forcedFruits',
 };
 
 const FRUITS_PER_EPISODE = 6;
@@ -533,12 +691,13 @@ const MAX_POLL_ATTEMPTS  = 150; // ~15 minutes
 
 let state = {
   workerUrl:      '',
-  usedFruits:     [],   // array of fruit names already used
+  usedFruits:     [],
   episodeCount:   0,
-  history:        [],   // [{number, fruits, clips}]
+  history:        [],
   currentEpisode: null,
   isGenerating:   false,
-  isReviewing:    false, // true when prompts are ready but not yet submitted
+  isReviewing:    false,
+  forcedFruits:   [], // fruits guaranteed to appear in next episode
 };
 
 function loadState() {
@@ -546,6 +705,7 @@ function loadState() {
   state.usedFruits   = JSON.parse(localStorage.getItem(STORAGE.usedFruits)   || '[]');
   state.episodeCount = parseInt(localStorage.getItem(STORAGE.episodeCount)    || '0');
   state.history      = JSON.parse(localStorage.getItem(STORAGE.history)       || '[]');
+  state.forcedFruits = JSON.parse(localStorage.getItem(STORAGE.forcedFruits)  || '[]');
 }
 
 function saveState() {
@@ -553,6 +713,7 @@ function saveState() {
   localStorage.setItem(STORAGE.usedFruits,   JSON.stringify(state.usedFruits));
   localStorage.setItem(STORAGE.episodeCount, String(state.episodeCount));
   localStorage.setItem(STORAGE.history,      JSON.stringify(state.history));
+  localStorage.setItem(STORAGE.forcedFruits, JSON.stringify(state.forcedFruits));
 }
 
 // ═══════════════════════════════════════════════════
@@ -566,35 +727,45 @@ async function callClaude(userPrompt) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 2000,
-      system: `You are an expert ASMR video director creating YouTube Shorts about fruit cutting.
+      system: `You are an expert spa and wellness ASMR video director creating YouTube Shorts about fruit cutting.
 
 Write precise prompts for Kling 2.6 Pro, a photorealistic AI video generator.
+
+OVERALL FEELING — every prompt must evoke this:
+The videos must feel spa-like, meditative, serene, and deeply relaxing. Every element — the motion, the knife, the lighting, the juice, and the sound — should feel like a high-end wellness experience. Nothing aggressive, violent, or startling. Think of the calm precision of a Japanese tea ceremony or a luxury spa treatment.
 
 REFERENCE STYLE — match every element exactly:
 - Background: soft neutral light gray gradient studio backdrop, seamless paper sweep, no texture
 - Surface: clean white seamless surface with a slight reflection
-- Lighting: soft warm studio lighting from above-left, gentle directional shadows
-- Camera: medium-close shot, the fruit fills most of the vertical frame
-- Knife: a wide flat cleaver or chef knife descending from above or entering from the side, blade glistening, but the fruit interior is always the hero element
-- Action: the cut completes and the two halves dramatically split apart in ultra slow motion
-- Juice: large dramatic juice splash erupting upward from the split, individual droplets suspended in air, juice pooling on the white surface below
-- Interior: the cross-section fills the majority of the frame — vivid color, seeds, texture and moisture are all prominent
-- Color: highly saturated vivid fruit colors contrasting sharply against the neutral gray background
+- Lighting: soft even warm diffused studio lighting from above, gentle whisper-soft shadows
+- Camera: overhead close-up or slight downward angle, fruit filling the frame, interior prominent
+- Knife: the thin elegant blade of a slender Japanese knife, already resting serenely against the fruit, gliding with slow graceful precision — only the lower portion of the blade is visible, no handle, no wide cleaver, never descending or striking
+- Action: the knife glides slowly and gracefully, the fruit gently parts and opens in ultra slow motion
+- Juice: a gentle unhurried flow or soft drift of juice, individual droplets drifting serenely, juice spreading into a delicate quiet pool — never erupting, splashing, or bursting
+- Interior: the cross-section fills the majority of the frame — luminous color, seeds, texture and moisture glowing softly under the studio light
+- Audio: serene, hushed, whisper-soft sounds — the gentle glide of a blade, the quiet release of juice, the soft settling of seeds — like water flowing over smooth warm stones
+
+BANNED WORDS — never use these:
+heavy, massive, erupting, wrenching, violent, forceful, dramatic, thud, crack, sharp, slam, burst, dense, aggressive, descends, striking, splits dramatically, wide cleaver, falls apart
+
+REQUIRED TONE WORDS — use these:
+glides, gently, slowly, softly, drifts, releases, settles, delicate, peaceful, quiet, unhurried, graceful, whisper, serene, luminous, diffused, serenely, elegantly, gracefully, luminously, warmly
 
 PROMPT STRUCTURE:
-"Medium-close [angle] shot, [whole fruit description] on a clean white seamless surface against a soft neutral light gray gradient studio backdrop, a [knife type] descends and splits the fruit cleanly in ultra slow motion, the two halves falling apart revealing the [specific interior — color, texture, seeds, moisture], a dramatic [color] juice splash erupting upward with droplets suspended in air and juice pooling below, soft warm studio lighting from above-left with gentle shadows, audio: [specific ASMR sound — impact, splitting crack, wet interior, juice spray], vertical 9:16, ultra slow motion, cinematic photorealistic 4K, ASMR"
+"Overhead close-up [or slight downward angle] shot, [fruit description] on a clean white seamless surface against a soft neutral light gray gradient studio backdrop, the thin elegant blade of a slender Japanese knife resting serenely against the fruit, gliding with slow graceful precision in ultra slow motion, the fruit gently parting to reveal [specific interior — color, texture, seeds, moisture filling the frame], a gentle unhurried flow of [color] juice releasing softly and drifting into a delicate quiet pool on the white surface below, individual [color] droplets drifting serenely catching the warm studio light like [poetic description], soft even warm diffused studio lighting from above with gentle whisper-soft shadows, audio: [serene hushed sound description — gliding blade, quiet juice release, gentle settling], vertical 9:16, ultra slow motion, cinematic photorealistic 4K, ASMR"
 
-EXAMPLE — Watermelon:
-"Medium-close front shot, a ripe whole watermelon on a clean white seamless surface against a soft neutral light gray gradient studio backdrop, a wide flat cleaver descends and splits the watermelon in ultra slow motion with the two halves falling outward, revealing the vivid crimson red interior with scattered black seeds glistening with moisture, a massive deep red juice splash erupting upward with individual droplets suspended in mid-air and juice pooling on the white surface below, soft warm studio lighting from above-left casting gentle shadows, audio: deep heavy thud of the cleaver followed by a wet cracking split and rushing juice sound, vertical 9:16, ultra slow motion, cinematic photorealistic 4K, ASMR"
+EXAMPLE — Mango:
+"Overhead close-up shot looking gently down, a ripe mango on a clean white seamless surface against a soft neutral light gray gradient studio backdrop, the thin elegant blade of a slender Japanese knife resting serenely against the mango, gliding with slow graceful precision through the fruit in ultra slow motion, the two halves gently parting to reveal the luminous golden-amber interior, the smooth dense flesh glowing warmly under the studio light with a shallow seed cavity visible at the center, a gentle unhurried flow of golden juice releasing softly and spreading into a delicate pool on the white surface below, individual amber droplets drifting serenely upward catching the warm studio light like suspended honey, soft even warm diffused studio lighting from above with gentle whisper-soft shadows, audio: the serene whisper of a blade gliding softly through dense flesh followed by the delicate quiet release of golden juice like warm honey flowing over smooth stone, vertical 9:16, ultra slow motion, cinematic photorealistic 4K, ASMR"
 
 RULES:
-- Every prompt must include the neutral light gray gradient studio backdrop — this is the single most important visual element
-- Every prompt must include a dramatic juice splash erupting upward with suspended droplets
-- The interior cross-section must fill more than half the frame at the moment of split
-- The knife enters from above or the side — never describe it moving laterally through the fruit as the main action
-- Match the juice color precisely to the fruit: pomegranate is deep ruby, mango is golden-orange, kiwi is pale green, passion fruit is amber-yellow
-- Match audio to the fruit density: dense fruits (watermelon, pineapple) get a deep thud and crack; soft fruits (strawberry, fig, peach) get a soft wet pop and gentle juice sound
-- Vary the cut angle slightly per fruit: straight overhead split, slight diagonal, front-facing reveal
+- Every prompt must include the neutral light gray gradient studio backdrop
+- The knife must always be described as slender, elegant, and gliding — never descending, striking, or heavy
+- Only the lower portion of the blade is visible — no handle, no full knife
+- Juice always flows, drifts, or releases gently — never erupts, splashes, or bursts
+- The interior must fill most of the frame and be described as luminous and glowing
+- Match juice color and audio precisely to each fruit
+- For fruits with dark red juice (pomegranate), use an overhead shot with juice flowing sideways into a pool — never dripping straight downward
+- Vary the shot angle subtly per fruit: overhead, gentle downward angle, slight side angle
 - NEVER describe text overlays, logos, or anything non-photorealistic
 
 Respond with ONLY valid JSON — no markdown, no backticks, no explanation:`,
@@ -685,13 +856,19 @@ async function generateEpisode() {
   const usedList  = state.usedFruits.length ? state.usedFruits.join(', ') : 'none yet';
   const availList = available.map(f => f.name).join(', ');
 
+  // Build forced fruits instruction if any are set
+  const validForced = state.forcedFruits.filter(f => FRUITS.some(fr => fr.name === f));
+  const forcedInstruction = validForced.length
+    ? `\n\nYou MUST include these fruits regardless of used status: ${validForced.join(', ')}. Select ${FRUITS_PER_EPISODE - validForced.length} more from available fruits.`
+    : '';
+
   let selection;
   try {
     showMessage('Asking Claude to select fruits and write prompts…', '');
     selection = await callClaude(
       `Previously used fruits (do NOT select these): ${usedList}
 
-Available fruits to choose from: ${availList}
+Available fruits to choose from: ${availList}${forcedInstruction}
 
 Select exactly ${FRUITS_PER_EPISODE} fruits. Write one unique video prompt per fruit.
 
@@ -743,10 +920,17 @@ async function submitEpisode() {
   if (!state.currentEpisode || state.isGenerating) return;
 
   // Read any edits the user made in the textareas back into state
+  // Skip clips that were removed
+  state.currentEpisode.clips = state.currentEpisode.clips.filter(c => !c._removed);
   state.currentEpisode.clips.forEach((clip, i) => {
     const ta = document.getElementById(`prompt-ta-${i}`);
     if (ta) state.currentEpisode.clips[i].prompt = ta.value.trim();
   });
+
+  if (state.currentEpisode.clips.length === 0) {
+    showMessage('No fruits left in this episode. Click Start Over.', 'error');
+    return;
+  }
 
   state.isReviewing  = false;
   state.isGenerating = true;
@@ -786,6 +970,7 @@ async function submitEpisode() {
   // Finalise episode
   state.episodeCount++;
   state.usedFruits = [...state.usedFruits, ...state.currentEpisode.fruits];
+  state.forcedFruits = []; // clear forced selections after episode completes
   state.history.unshift({
     number: episodeNumber,
     fruits: state.currentEpisode.fruits,
@@ -829,17 +1014,117 @@ function renderReviewPanel() {
   if (!ep) return;
 
   list.innerHTML = ep.clips.map((clip, i) => `
-    <div class="prompt-card">
+    <div class="prompt-card" id="prompt-card-${i}">
       <div class="prompt-card-header">
         <div class="prompt-fruit">
           <span>${clip.emoji}</span>
           <span>${clip.fruit}</span>
         </div>
-        <button class="btn-copy" id="copy-btn-${i}" onclick="copyPrompt(${i})">Copy</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-copy" id="copy-btn-${i}" onclick="copyPrompt(${i})">Copy</button>
+          <button class="btn-remove" onclick="removeFruitFromEpisode(${i})" title="Remove this fruit">✕ Remove</button>
+        </div>
       </div>
       <textarea class="prompt-textarea" id="prompt-ta-${i}">${clip.prompt}</textarea>
     </div>
   `).join('');
+}
+
+// Remove a single fruit from the current episode (does NOT mark it as used)
+function removeFruitFromEpisode(i) {
+  if (!state.currentEpisode) return;
+  const card = document.getElementById(`prompt-card-${i}`);
+  if (card) {
+    card.style.opacity = '0.3';
+    card.style.pointerEvents = 'none';
+    card.style.transition = 'opacity 0.3s';
+  }
+  state.currentEpisode.clips[i]._removed = true;
+  // Filter out removed clips
+  const remaining = state.currentEpisode.clips.filter(c => !c._removed);
+  if (remaining.length === 0) {
+    showMessage('All fruits removed. Click Start Over to generate a new selection.', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// FRUIT MANAGER
+// ═══════════════════════════════════════════════════
+
+function openFruitManager() {
+  renderFruitManagerGrid();
+  document.getElementById('fm-modal').classList.remove('hidden');
+}
+
+function closeFruitManager() {
+  document.getElementById('fm-modal').classList.add('hidden');
+  saveState();
+  renderUI();
+}
+
+function renderFruitManagerGrid() {
+  const grid = document.getElementById('fm-grid');
+  const noteEl = document.getElementById('fm-forced-note');
+
+  const forcedCount = state.forcedFruits.length;
+  if (forcedCount > 0) {
+    noteEl.textContent = `${forcedCount} fruit${forcedCount > 1 ? 's' : ''} forced into next episode: ${state.forcedFruits.join(', ')}`;
+    noteEl.classList.remove('hidden');
+  } else {
+    noteEl.classList.add('hidden');
+  }
+
+  grid.innerHTML = FRUITS.map(f => {
+    const isUsed   = state.usedFruits.includes(f.name);
+    const isForced = state.forcedFruits.includes(f.name);
+    return `
+      <div class="fm-fruit-row ${isUsed ? 'is-used' : ''} ${isForced ? 'is-forced' : ''}">
+        <span class="fm-fruit-emoji">${f.emoji}</span>
+        <span class="fm-fruit-name">${f.name}</span>
+        <button class="fm-btn-used ${isUsed ? 'used' : ''}"
+          onclick="toggleFruitUsed('${f.name}')"
+          title="${isUsed ? 'Mark as available' : 'Mark as used'}">
+          ${isUsed ? 'Used' : 'Avail'}
+        </button>
+        <button class="fm-btn-force ${isForced ? 'forced' : ''}"
+          onclick="toggleForceFruit('${f.name}')"
+          title="${isForced ? 'Remove force' : 'Force include in next episode'}">
+          ${isForced ? '★ On' : '☆ Force'}
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleFruitUsed(name) {
+  if (state.usedFruits.includes(name)) {
+    state.usedFruits = state.usedFruits.filter(f => f !== name);
+  } else {
+    state.usedFruits.push(name);
+  }
+  renderFruitManagerGrid();
+}
+
+function toggleForceFruit(name) {
+  if (state.forcedFruits.includes(name)) {
+    state.forcedFruits = state.forcedFruits.filter(f => f !== name);
+  } else {
+    if (state.forcedFruits.length >= FRUITS_PER_EPISODE) {
+      alert(`You can only force up to ${FRUITS_PER_EPISODE} fruits per episode.`);
+      return;
+    }
+    state.forcedFruits.push(name);
+    // Make sure forced fruit is marked as available
+    state.usedFruits = state.usedFruits.filter(f => f !== name);
+  }
+  renderFruitManagerGrid();
+}
+
+function resetAllFruits() {
+  if (!confirm('Reset all fruits to available and clear forced selections?')) return;
+  state.usedFruits   = [];
+  state.forcedFruits = [];
+  renderFruitManagerGrid();
 }
 
 // Copy a single prompt to clipboard
