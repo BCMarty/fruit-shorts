@@ -453,21 +453,34 @@ async function callClaude(userPrompt) {
       max_tokens: 2000,
       system: `You are an expert ASMR video director creating YouTube Shorts about fruit cutting.
 
-Write precise prompts for Kling 2.6 Pro, a photorealistic AI video generator that generates synchronized native audio.
+Write precise prompts for Kling 2.6 Pro, a photorealistic AI video generator.
+
+REFERENCE STYLE — match every element exactly:
+- Background: soft neutral light gray gradient studio backdrop, seamless paper sweep, no texture
+- Surface: clean white seamless surface with a slight reflection
+- Lighting: soft warm studio lighting from above-left, gentle directional shadows
+- Camera: medium-close shot, the fruit fills most of the vertical frame
+- Knife: a wide flat cleaver or chef knife descending from above or entering from the side, blade glistening, but the fruit interior is always the hero element
+- Action: the cut completes and the two halves dramatically split apart in ultra slow motion
+- Juice: large dramatic juice splash erupting upward from the split, individual droplets suspended in air, juice pooling on the white surface below
+- Interior: the cross-section fills the majority of the frame — vivid color, seeds, texture and moisture are all prominent
+- Color: highly saturated vivid fruit colors contrasting sharply against the neutral gray background
 
 PROMPT STRUCTURE:
-"[Shot type and angle], [specific fruit description], [cutting action in slow motion], [interior texture details], [surface and background], [lighting], [audio — describe the exact ASMR sounds], vertical 9:16 format, 120fps slow motion, cinematic photorealistic 4K, ASMR"
+"Medium-close [angle] shot, [whole fruit description] on a clean white seamless surface against a soft neutral light gray gradient studio backdrop, a [knife type] descends and splits the fruit cleanly in ultra slow motion, the two halves falling apart revealing the [specific interior — color, texture, seeds, moisture], a dramatic [color] juice splash erupting upward with droplets suspended in air and juice pooling below, soft warm studio lighting from above-left with gentle shadows, audio: [specific ASMR sound — impact, splitting crack, wet interior, juice spray], vertical 9:16, ultra slow motion, cinematic photorealistic 4K, ASMR"
 
-EXAMPLE:
-"Extreme macro close-up overhead shot, a bright red watermelon with dark green rind on polished white marble, a heavy Japanese cleaver splits it cleanly in half with one decisive stroke in ultra-slow motion at 120fps, revealing the vibrant crimson interior with white seeds, glistening juice spraying outward in suspended droplets, soft diffused window light casting gentle shadows, deep satisfying thud of the cleaver followed by the wet crack of the rind and rushing juice sound, vertical 9:16 format, 120fps slow motion, cinematic photorealistic 4K, ASMR"
+EXAMPLE — Watermelon:
+"Medium-close front shot, a ripe whole watermelon on a clean white seamless surface against a soft neutral light gray gradient studio backdrop, a wide flat cleaver descends and splits the watermelon in ultra slow motion with the two halves falling outward, revealing the vivid crimson red interior with scattered black seeds glistening with moisture, a massive deep red juice splash erupting upward with individual droplets suspended in mid-air and juice pooling on the white surface below, soft warm studio lighting from above-left casting gentle shadows, audio: deep heavy thud of the cleaver followed by a wet cracking split and rushing juice sound, vertical 9:16, ultra slow motion, cinematic photorealistic 4K, ASMR"
 
 RULES:
-- Each prompt must be unique in shot angle, cutting technique, surface, and lighting
-- Vary surfaces: white marble, dark slate, light oak wood, pale stone
-- Vary shots: overhead, 45-degree angle, side-on, close-up of the cut face
-- Vary cuts: halving, wedging, thin slicing, cross-section reveal
-- Be specific about audio: describe the texture of the sound (crisp, wet, hollow, soft pop, etc.)
-- NEVER describe anything that cannot be photorealistically generated (no text overlays, no logos)
+- Every prompt must include the neutral light gray gradient studio backdrop — this is the single most important visual element
+- Every prompt must include a dramatic juice splash erupting upward with suspended droplets
+- The interior cross-section must fill more than half the frame at the moment of split
+- The knife enters from above or the side — never describe it moving laterally through the fruit as the main action
+- Match the juice color precisely to the fruit: pomegranate is deep ruby, mango is golden-orange, kiwi is pale green, passion fruit is amber-yellow
+- Match audio to the fruit density: dense fruits (watermelon, pineapple) get a deep thud and crack; soft fruits (strawberry, fig, peach) get a soft wet pop and gentle juice sound
+- Vary the cut angle slightly per fruit: straight overhead split, slight diagonal, front-facing reveal
+- NEVER describe text overlays, logos, or anything non-photorealistic
 
 Respond with ONLY valid JSON — no markdown, no backticks, no explanation:`,
       messages: [{ role: 'user', content: userPrompt }],
